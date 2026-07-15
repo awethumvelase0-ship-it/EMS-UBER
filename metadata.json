@@ -1,0 +1,6 @@
+{
+  "name": "EMS Dispatcher",
+  "description": "Full-stack real-time ambulance dispatch, GPS tracking, and HIPAA-compliant medical coding portal.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
