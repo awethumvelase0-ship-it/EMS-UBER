@@ -140,7 +140,46 @@ let trips: DispatchTrip[] = [
       { status: TripStatus.ARRIVED, timestamp: "2026-07-15T04:55:00Z", note: "Arrived at destination hospital" },
       { status: TripStatus.COMPLETED, timestamp: "2026-07-15T05:15:00Z", note: "Trip completed and signed off by physician" }
     ],
-    offlineSynced: true
+    offlineSynced: true,
+    kilometersCovered: 12.8,
+    equipmentsUsed: ["Cardiac Monitor / Defibrillator", "Intravenous (IV) Therapy Kit", "Oxygen Supply (High-Flow)"]
+  },
+  {
+    id: "trip-sched-999",
+    status: TripStatus.SCHEDULED,
+    triageLevel: TriageLevel.GREEN,
+    callerPhone: "+1 (555) 728-1192",
+    locationName: "1028 Howard St, San Francisco, CA",
+    gpsCoordinates: { lat: 37.7785, lng: -122.4082 },
+    destinationHospital: "City Community Hospital",
+    ambulanceId: "amb-102",
+    patientInfo: {
+      name: "Seneca the Younger",
+      dob: "1964-11-12",
+      gender: "Male",
+      ssnLocked: "XXX-XX-1120",
+      medicalHistory: "Chronic arthritis, mobility impaired, non-acute patient transfer scheduled",
+      accessCode: "9910"
+    },
+    clinicalRecord: {
+      vitals: [],
+      symptoms: "Scheduled Non-Emergency Orthopedic Transport",
+      clinicalNotes: ""
+    },
+    medicalCodes: [],
+    insuranceReport: {
+      insuranceProvider: "Medicare Plan B",
+      policyNumber: "MC-882910-Z"
+    },
+    doctorSignOff: {
+      signed: false
+    },
+    timeline: [
+      { status: TripStatus.SCHEDULED, timestamp: "2026-07-15T07:15:00Z", note: "Ambulance BLS Unit 2 pre-booked for transport at 14:30" }
+    ],
+    offlineSynced: true,
+    isScheduled: true,
+    scheduledAt: "2026-07-15T14:30"
   }
 ];
 
@@ -243,6 +282,65 @@ setInterval(() => {
 // 1. Get Ambulances
 app.get("/api/ambulances", (req, res) => {
   res.json(ambulances);
+});
+
+// 1b. Register a new Ambulance with compliance documents
+app.post("/api/ambulances", (req, res) => {
+  const { name, type, crew, vitalsMonitoringSupported, complianceDocs } = req.body;
+  if (!name || !type) {
+    return res.status(400).json({ error: "Missing required fields: name or type" });
+  }
+  const newAmbulance: Ambulance = {
+    id: `amb-${Date.now()}`,
+    name,
+    type: type as AmbulanceType,
+    status: AmbulanceStatus.AVAILABLE,
+    location: { lat: 37.7749 + (Math.random() - 0.5) * 0.04, lng: -122.4194 + (Math.random() - 0.5) * 0.04 },
+    crew: crew || [],
+    vitalsMonitoringSupported: !!vitalsMonitoringSupported,
+    complianceDocs: complianceDocs || []
+  };
+  ambulances.push(newAmbulance);
+  logHIPAA(
+    "Ambulance Client Operator",
+    UserRole.PROVIDER,
+    "REGISTER_AMBULANCE",
+    `Registered new vehicle unit: ${name} (${type}) with ${complianceDocs?.length || 0} compliance documents.`
+  );
+  res.status(201).json(newAmbulance);
+});
+
+// 1c. Add compliance document to an existing ambulance
+app.post("/api/ambulances/:id/documents", (req, res) => {
+  const { id } = req.params;
+  const { document } = req.body;
+  if (!document) {
+    return res.status(400).json({ error: "Missing document data" });
+  }
+  const ambulance = ambulances.find(a => a.id === id);
+  if (!ambulance) {
+    return res.status(404).json({ error: "Ambulance not found" });
+  }
+  if (!ambulance.complianceDocs) {
+    ambulance.complianceDocs = [];
+  }
+  
+  const newDoc = {
+    id: `doc-${Date.now()}`,
+    ...document,
+    status: "APPROVED"
+  };
+  
+  ambulance.complianceDocs.push(newDoc);
+  
+  logHIPAA(
+    "Ambulance Client Operator",
+    UserRole.PROVIDER,
+    "UPLOAD_COMPLIANCE_DOCUMENT",
+    `Uploaded compliance document [${newDoc.name}] for vehicle: ${ambulance.name}.`
+  );
+  
+  res.json({ success: true, doc: newDoc, ambulance });
 });
 
 // 2. Get Trips
@@ -352,14 +450,94 @@ app.post("/api/trips/panic", (req, res) => {
   res.status(201).json({ trip: newTrip, ambulance: selectedAmbulance });
 });
 
+// 4b. Schedule a Trip in Advance (Client Pre-Booking Engine)
+app.post("/api/trips/schedule", (req, res) => {
+  const { 
+    triageLevel, 
+    callerPhone, 
+    locationName, 
+    destinationHospital,
+    ambulanceId, 
+    scheduledAt, 
+    patientName, 
+    dob, 
+    gender, 
+    ssnLocked, 
+    medicalHistory, 
+    accessCode 
+  } = req.body;
+
+  if (!callerPhone || !scheduledAt) {
+    return res.status(400).json({ error: "Missing required scheduling fields: callerPhone or scheduledAt" });
+  }
+
+  const newTrip: DispatchTrip = {
+    id: `trip-sched-${Date.now()}`,
+    status: TripStatus.SCHEDULED,
+    triageLevel: (triageLevel as TriageLevel) || TriageLevel.GREEN,
+    callerPhone,
+    locationName: locationName || "Scheduled Address",
+    gpsCoordinates: { lat: 37.7749 + (Math.random() - 0.5) * 0.03, lng: -122.4194 + (Math.random() - 0.5) * 0.03 },
+    destinationHospital: destinationHospital || "City Community Hospital",
+    ambulanceId: ambulanceId || undefined,
+    patientInfo: {
+      name: patientName || "Scheduled Client",
+      dob: dob || "1985-01-01",
+      gender: gender || "Other",
+      ssnLocked: ssnLocked || "XXX-XX-0000",
+      medicalHistory: medicalHistory || "Scheduled transport",
+      accessCode: accessCode || "1234"
+    },
+    clinicalRecord: {
+      vitals: [],
+      symptoms: "Scheduled Non-Emergency Transfer",
+      clinicalNotes: ""
+    },
+    medicalCodes: [],
+    insuranceReport: {
+      insuranceProvider: "Medicare Plan B",
+      policyNumber: "MC-882910-Z"
+    },
+    doctorSignOff: {
+      signed: false
+    },
+    timeline: [
+      { status: TripStatus.SCHEDULED, timestamp: new Date().toISOString(), note: `Advance booking completed for: ${scheduledAt}` }
+    ],
+    offlineSynced: true,
+    isScheduled: true,
+    scheduledAt
+  };
+
+  trips.push(newTrip);
+
+  logHIPAA(
+    "Booking Client Interface",
+    UserRole.CLIENT,
+    "SCHEDULE_TRIP",
+    `Pre-booked ambulance trip ${newTrip.id} for ${scheduledAt} (Destination: ${destinationHospital}, Ambulance: ${ambulanceId || 'Auto-allocated on dispatch'})`
+  );
+
+  res.status(201).json(newTrip);
+});
+
 // 5. Update Trip Status manually
 app.post("/api/trips/:id/status", (req, res) => {
   const { id } = req.params;
-  const { status, note, user, role } = req.body;
+  const { status, note, user, role, ambulanceId } = req.body;
 
   const trip = trips.find(t => t.id === id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
+  }
+
+  // Bind ambulance manually if provided
+  if (ambulanceId) {
+    trip.ambulanceId = ambulanceId;
+    const ambulance = ambulances.find(a => a.id === ambulanceId);
+    if (ambulance) {
+      ambulance.status = AmbulanceStatus.ON_ROUTE;
+    }
   }
 
   trip.status = status as TripStatus;
@@ -453,10 +631,10 @@ app.post("/api/trips/:id/vitals", (req, res) => {
   res.json(trip);
 });
 
-// 8. Update clinical notes, symptoms
+// 8. Update clinical notes, symptoms, kilometers, and equipments used
 app.post("/api/trips/:id/clinical", (req, res) => {
   const { id } = req.params;
-  const { symptoms, clinicalNotes } = req.body;
+  const { symptoms, clinicalNotes, kilometersCovered, equipmentsUsed } = req.body;
 
   const trip = trips.find(t => t.id === id);
   if (!trip) {
@@ -465,12 +643,14 @@ app.post("/api/trips/:id/clinical", (req, res) => {
 
   if (symptoms !== undefined) trip.clinicalRecord.symptoms = symptoms;
   if (clinicalNotes !== undefined) trip.clinicalRecord.clinicalNotes = clinicalNotes;
+  if (kilometersCovered !== undefined) trip.kilometersCovered = Number(kilometersCovered);
+  if (equipmentsUsed !== undefined) trip.equipmentsUsed = equipmentsUsed;
 
   logHIPAA(
     "Paramedic Terminal", 
     UserRole.PARAMEDIC, 
     "UPDATE_CLINICAL_RECORDS", 
-    `Modified symptoms/clinical notes for Trip ${id}`
+    `Modified clinical records, kilometers covered (${kilometersCovered || 0} km), and equipments used (${equipmentsUsed?.length || 0}) for Trip ${id}`
   );
 
   res.json(trip);

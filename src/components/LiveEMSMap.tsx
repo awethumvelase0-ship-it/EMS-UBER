@@ -44,39 +44,39 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
   ];
 
   return (
-    <div className="relative w-full h-[380px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-      {/* Background Neon Grid HUD */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black opacity-90" />
+    <div className="relative w-full h-[380px] bg-zinc-100 rounded-xl overflow-hidden border border-zinc-200 shadow-md">
+      {/* Background Light Grid HUD */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-50 via-zinc-100 to-zinc-200 opacity-90" />
       <div 
-        className="absolute inset-0 bg-grid-pattern opacity-[0.07]" 
+        className="absolute inset-0 bg-grid-pattern opacity-[0.12]" 
         style={{
-          backgroundImage: "radial-gradient(#14b8a6 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(#0ea5e9 1px, transparent 1px)",
           backgroundSize: "20px 20px"
         }}
       />
 
       {/* Map Header Overlay */}
-      <div className="absolute top-3 left-3 z-10 bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
-        <Activity className="w-4 h-4 text-teal-400 animate-pulse" />
-        <span className="text-xs font-mono font-bold text-teal-400 uppercase tracking-widest">{title}</span>
+      <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-zinc-250 flex items-center gap-2 shadow-xs">
+        <Activity className="w-4 h-4 text-teal-600 animate-pulse" />
+        <span className="text-xs font-mono font-bold text-teal-700 uppercase tracking-widest">{title}</span>
       </div>
 
       {/* Map SVG Canvas */}
       <svg className="w-full h-full p-2 relative z-0 select-none" viewBox="0 0 100 100" preserveAspectRatio="none">
         
-        {/* Mock Glowing Roads Network */}
-        <g opacity="0.15">
+        {/* Mock Roads Network - Light/Contrast styled */}
+        <g opacity="0.35">
           {/* Main Highway 101 Grid */}
-          <line x1="10" y1="20" x2="90" y2="20" stroke="#0ea5e9" strokeWidth="0.5" strokeDasharray="1,1" />
-          <line x1="10" y1="50" x2="90" y2="50" stroke="#0ea5e9" strokeWidth="0.5" />
-          <line x1="10" y1="80" x2="90" y2="80" stroke="#0ea5e9" strokeWidth="0.5" strokeDasharray="2,1" />
-          <line x1="20" y1="10" x2="20" y2="90" stroke="#0ea5e9" strokeWidth="0.5" />
-          <line x1="50" y1="10" x2="50" y2="90" stroke="#0ea5e9" strokeWidth="0.5" strokeDasharray="1,2" />
-          <line x1="80" y1="10" x2="80" y2="90" stroke="#0ea5e9" strokeWidth="0.5" />
+          <line x1="10" y1="20" x2="90" y2="20" stroke="#cbd5e1" strokeWidth="0.5" strokeDasharray="1,1" />
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#94a3b8" strokeWidth="0.5" />
+          <line x1="10" y1="80" x2="90" y2="80" stroke="#cbd5e1" strokeWidth="0.5" strokeDasharray="2,1" />
+          <line x1="20" y1="10" x2="20" y2="90" stroke="#94a3b8" strokeWidth="0.5" />
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#cbd5e1" strokeWidth="0.5" strokeDasharray="1,2" />
+          <line x1="80" y1="10" x2="80" y2="90" stroke="#94a3b8" strokeWidth="0.5" />
           
           {/* Diagonal Arteries */}
-          <line x1="10" y1="10" x2="90" y2="90" stroke="#14b8a6" strokeWidth="0.3" strokeDasharray="3,3" />
-          <line x1="90" y1="10" x2="10" y2="90" stroke="#14b8a6" strokeWidth="0.3" />
+          <line x1="10" y1="10" x2="90" y2="90" stroke="#94a3b8" strokeWidth="0.3" strokeDasharray="3,3" />
+          <line x1="90" y1="10" x2="10" y2="90" stroke="#94a3b8" strokeWidth="0.3" />
         </g>
 
         {/* Route Line if Trip is Active */}
@@ -96,12 +96,12 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
                     <>
                       <line 
                         x1={ambPt.x} y1={ambPt.y} x2={patPt.x} y2={patPt.y} 
-                        stroke="#f59e0b" strokeWidth="0.8" strokeDasharray="1,1"
+                        stroke="#d97706" strokeWidth="0.8" strokeDasharray="1,1"
                         className="animate-pulse"
                       />
                       <path 
                         d={`M ${ambPt.x} ${ambPt.y} Q ${(ambPt.x + patPt.x)/2} ${(ambPt.y + patPt.y)/2 - 5}, ${patPt.x} ${patPt.y}`}
-                        fill="none" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="2,2"
+                        fill="none" stroke="#d97706" strokeWidth="0.5" strokeDasharray="2,2"
                       />
                     </>
                   )}
@@ -110,11 +110,11 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
                     <>
                       <line 
                         x1={ambPt.x} y1={ambPt.y} x2={hospPt.x} y2={hospPt.y} 
-                        stroke="#14b8a6" strokeWidth="0.8" strokeDasharray="1,1"
+                        stroke="#0d9488" strokeWidth="0.8" strokeDasharray="1,1"
                       />
                       <path 
                         d={`M ${ambPt.x} ${ambPt.y} Q ${(ambPt.x + hospPt.x)/2} ${(ambPt.y + hospPt.y)/2 - 5}, ${hospPt.x} ${hospPt.y}`}
-                        fill="none" stroke="#10b981" strokeWidth="0.5" strokeDasharray="2,2"
+                        fill="none" stroke="#059669" strokeWidth="0.5" strokeDasharray="2,2"
                       />
                     </>
                   )}
@@ -133,7 +133,7 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
             <g key={idx}>
               <circle 
                 cx={pt.x} cy={pt.y} r={isTarget ? 3.5 : 2.2} 
-                fill={isTarget ? "#059669" : "#1e293b"} 
+                fill={isTarget ? "#059669" : "#e2e8f0"} 
                 stroke="#10b981" strokeWidth="0.4" 
               />
               {isTarget && (
@@ -153,16 +153,16 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
             {/* Pulse Rings */}
             <circle 
               cx={patientCoords.x} cy={patientCoords.y} r="8" 
-              fill="none" stroke={activeTrip.triageLevel === "RED" ? "#ef4444" : "#f59e0b"} strokeWidth="0.15" 
+              fill="none" stroke={activeTrip.triageLevel === "RED" ? "#dc2626" : "#d97706"} strokeWidth="0.15" 
               className="animate-ping" style={{ transformOrigin: `${patientCoords.x}px ${patientCoords.y}px` }}
             />
             <circle 
               cx={patientCoords.x} cy={patientCoords.y} r="4" 
-              fill="none" stroke={activeTrip.triageLevel === "RED" ? "#ef4444" : "#f59e0b"} strokeWidth="0.3" 
+              fill="none" stroke={activeTrip.triageLevel === "RED" ? "#dc2626" : "#d97706"} strokeWidth="0.3" 
             />
             <circle 
               cx={patientCoords.x} cy={patientCoords.y} r="1.5" 
-              fill={activeTrip.triageLevel === "RED" ? "#ef4444" : "#f59e0b"} 
+              fill={activeTrip.triageLevel === "RED" ? "#dc2626" : "#d97706"} 
             />
           </g>
         )}
@@ -173,10 +173,10 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
           const isAssigned = activeTrip?.ambulanceId === amb.id;
           
           let color = "#64748b"; // out of service
-          if (amb.status === "AVAILABLE") color = "#0ea5e9";
-          else if (amb.status === "ON_ROUTE") color = "#f59e0b";
-          else if (amb.status === "AT_SCENE") color = "#ef4444";
-          else if (amb.status === "TRANSPORTING") color = "#10b981";
+          if (amb.status === "AVAILABLE") color = "#0284c7";
+          else if (amb.status === "ON_ROUTE") color = "#d97706";
+          else if (amb.status === "AT_SCENE") color = "#dc2626";
+          else if (amb.status === "TRANSPORTING") color = "#059669";
 
           return (
             <g key={amb.id}>
@@ -200,13 +200,13 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
       </svg>
 
       {/* Floating Interactive Legends Overlay */}
-      <div className="absolute bottom-3 left-3 right-3 z-10 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-lg border border-slate-800 grid grid-cols-4 gap-1.5 text-[10px] font-mono text-slate-400">
+      <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/95 backdrop-blur-md px-3 py-2 rounded-lg border border-zinc-200 grid grid-cols-4 gap-1.5 text-[10px] font-mono text-zinc-600 shadow-xs">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-emerald-400 inline-block animate-pulse" />
           <span className="truncate">ER Hospital</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-sky-500 border border-sky-400 inline-block" />
+          <span className="w-2.5 h-2.5 rounded-full bg-sky-600 border border-sky-400 inline-block" />
           <span className="truncate">ALS Medic</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -214,8 +214,8 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
           <span className="truncate">BLS Vehicle</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-400 inline-block animate-ping" />
-          <span className="truncate text-red-400 font-bold">Distress Pin</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-red-400 inline-block animate-ping" />
+          <span className="truncate text-red-600 font-bold">Distress Pin</span>
         </div>
       </div>
 
@@ -228,17 +228,17 @@ export default function LiveEMSMap({ ambulances, activeTrip, title = "San Franci
             <div 
               key={i} 
               className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-1 border ${
-                isTarget ? "bg-emerald-950/90 text-emerald-300 border-emerald-700 font-bold" : "bg-slate-900/80 text-slate-300 border-slate-800"
+                isTarget ? "bg-emerald-50/95 text-emerald-800 border-emerald-200 font-bold shadow-xs" : "bg-white/90 text-zinc-700 border-zinc-200 shadow-xs"
               }`}
             >
-              <Hospital className="w-2.5 h-2.5 text-emerald-400" />
+              <Hospital className="w-2.5 h-2.5 text-emerald-600" />
               <span>{h.name.split(" ")[0]}</span>
             </div>
           );
         })}
         {activeTrip && activeTrip.status !== "COMPLETED" && (
-          <div className="bg-red-950/90 text-red-300 border border-red-700 text-[9px] px-2 py-0.5 rounded flex items-center gap-1 font-bold animate-bounce">
-            <MapPin className="w-2.5 h-2.5 text-red-400" />
+          <div className="bg-red-50/95 text-red-800 border border-red-200 text-[9px] px-2 py-0.5 rounded flex items-center gap-1 font-bold animate-bounce shadow-xs">
+            <MapPin className="w-2.5 h-2.5 text-red-600" />
             <span>Emergency (Client)</span>
           </div>
         )}

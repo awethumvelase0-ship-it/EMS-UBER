@@ -7,8 +7,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { 
   ShieldCheck, Siren, HeartPulse, User, Hospital, 
-  FileSpreadsheet, Terminal, Activity, RefreshCw,
-  Menu, X
+  FileSpreadsheet, Terminal, Activity, RefreshCw, Menu 
 } from "lucide-react";
 
 import { 
@@ -22,14 +21,15 @@ import DispatcherDashboard from "./components/DispatcherDashboard";
 import HospitalDashboard from "./components/HospitalDashboard";
 import BillingDashboard from "./components/BillingDashboard";
 import AdminDashboard from "./components/AdminDashboard";
+import AmbulanceRegistrationDashboard from "./components/AmbulanceRegistrationDashboard";
 
 export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.CLIENT);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [trips, setTrips] = useState<DispatchTrip[]>([]);
   const [auditLogs, setAuditLogs] = useState<HIPAAAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isNavVisible, setIsNavVisible] = useState(true);
 
   // Poll state from full-stack server
   const fetchAllData = async () => {
@@ -110,7 +110,8 @@ export default function App() {
           status: TripStatus.ON_ROUTE, 
           note: `Dispatcher assigned ambulance unit manually`,
           user: "Chief Dispatcher",
-          role: UserRole.DISPATCHER
+          role: UserRole.DISPATCHER,
+          ambulanceId
         })
       });
       if (res.ok) {
@@ -277,287 +278,315 @@ export default function App() {
     }
   };
 
-  // Find active distress trip for Client view
-  const activeClientTrip = trips.find(t => t.status !== TripStatus.COMPLETED);
+  const handleRegisterAmbulance = async (ambulanceData: any) => {
+    try {
+      const res = await fetch("/api/ambulances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ambulanceData)
+      });
+      if (res.ok) {
+        await fetchAllData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUploadComplianceDoc = async (ambulanceId: string, documentData: any) => {
+    try {
+      const res = await fetch(`/api/ambulances/${ambulanceId}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: documentData })
+      });
+      if (res.ok) {
+        await fetchAllData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleScheduleTrip = async (scheduleData: any) => {
+    try {
+      const res = await fetch("/api/trips/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(scheduleData)
+      });
+      if (res.ok) {
+        await fetchAllData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Find active distress trip for Client view (excludes completed and scheduled trips)
+  const activeClientTrip = trips.find(t => t.status !== TripStatus.COMPLETED && t.status !== TripStatus.SCHEDULED);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-zinc-100 flex font-sans selection:bg-red-950 selection:text-red-200">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col font-sans selection:bg-red-100 selection:text-red-900">
       
-      {/* Mobile Drawer Overlay Backdrop */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Unified Sidebar (Desktop Static, Mobile Drawer) */}
-      <aside 
-        className={`fixed inset-y-0 left-0 w-72 bg-[#111114] border-r border-zinc-800/80 z-50 flex flex-col justify-between transform transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 shrink-0 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col flex-1 overflow-y-auto">
-          {/* Sidebar Header */}
-          <div className="p-6 border-b border-zinc-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-red-600 text-white px-3 py-1.5 text-xs font-black tracking-tighter uppercase font-display rounded shadow-[0_0_12px_rgba(220,38,38,0.3)]">
-                EMS CORE
-              </div>
-            </div>
-            {/* Mobile close button */}
-            <button 
-              className="lg:hidden text-zinc-400 hover:text-white p-1 rounded-md hover:bg-zinc-850 transition-colors"
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Unit Status */}
-          <div className="px-6 py-4 border-b border-zinc-800/50 bg-[#0c0c0e]">
-            <span className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.7)] animate-pulse shrink-0"></span>
-              <span className="leading-tight">EMS-UBER LIVE DEPLOYMENT</span>
-            </span>
-          </div>
-
-          {/* Role Navigation Items */}
-          <nav className="p-4 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] px-2 mb-2 font-mono">
-              Dashboard Terminals
-            </span>
-            
-            <button 
-              id="role-client"
-              onClick={() => {
-                setCurrentRole(UserRole.CLIENT);
-                setIsSidebarOpen(false);
-              }}
-              className={`group flex items-center gap-3.5 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] rounded-lg transition-all border-l-2 text-left cursor-pointer ${
-                currentRole === UserRole.CLIENT 
-                  ? "bg-red-600/10 text-red-400 border-red-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" 
-                  : "bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/60 hover:border-zinc-700/50"
-              }`}
-            >
-              <User className={`w-4 h-4 transition-transform group-hover:scale-110 shrink-0 ${currentRole === UserRole.CLIENT ? "text-red-400" : "text-zinc-500"}`} />
-              <span>1. Caller / Patient</span>
-            </button>
-
-            <button 
-              id="role-dispatcher"
-              onClick={() => {
-                setCurrentRole(UserRole.DISPATCHER);
-                setIsSidebarOpen(false);
-              }}
-              className={`group flex items-center gap-3.5 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] rounded-lg transition-all border-l-2 text-left cursor-pointer ${
-                currentRole === UserRole.DISPATCHER 
-                  ? "bg-blue-600/10 text-blue-400 border-blue-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" 
-                  : "bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/60 hover:border-zinc-700/50"
-              }`}
-            >
-              <Activity className={`w-4 h-4 transition-transform group-hover:scale-110 shrink-0 ${currentRole === UserRole.DISPATCHER ? "text-blue-400" : "text-zinc-500"}`} />
-              <span>2. Dispatch Coordinator</span>
-            </button>
-
-            <button 
-              id="role-paramedic"
-              onClick={() => {
-                setCurrentRole(UserRole.PARAMEDIC);
-                setIsSidebarOpen(false);
-              }}
-              className={`group flex items-center gap-3.5 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] rounded-lg transition-all border-l-2 text-left cursor-pointer ${
-                currentRole === UserRole.PARAMEDIC 
-                  ? "bg-amber-600/10 text-amber-400 border-amber-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" 
-                  : "bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/60 hover:border-zinc-700/50"
-              }`}
-            >
-              <HeartPulse className={`w-4 h-4 transition-transform group-hover:scale-110 shrink-0 ${currentRole === UserRole.PARAMEDIC ? "text-amber-400" : "text-zinc-500"}`} />
-              <span>3. Paramedic Terminal</span>
-            </button>
-
-            <button 
-              id="role-hospital"
-              onClick={() => {
-                setCurrentRole(UserRole.HOSPITAL);
-                setIsSidebarOpen(false);
-              }}
-              className={`group flex items-center gap-3.5 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] rounded-lg transition-all border-l-2 text-left cursor-pointer ${
-                currentRole === UserRole.HOSPITAL 
-                  ? "bg-emerald-600/10 text-emerald-400 border-emerald-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" 
-                  : "bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/60 hover:border-zinc-700/50"
-              }`}
-            >
-              <Hospital className={`w-4 h-4 transition-transform group-hover:scale-110 shrink-0 ${currentRole === UserRole.HOSPITAL ? "text-emerald-400" : "text-zinc-500"}`} />
-              <span>4. Hospital ER Portal</span>
-            </button>
-
-            <button 
-              id="role-billing"
-              onClick={() => {
-                setCurrentRole(UserRole.BILLING);
-                setIsSidebarOpen(false);
-              }}
-              className={`group flex items-center gap-3.5 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] rounded-lg transition-all border-l-2 text-left cursor-pointer ${
-                currentRole === UserRole.BILLING 
-                  ? "bg-teal-600/10 text-teal-400 border-teal-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" 
-                  : "bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/60 hover:border-zinc-700/50"
-              }`}
-            >
-              <FileSpreadsheet className={`w-4 h-4 transition-transform group-hover:scale-110 shrink-0 ${currentRole === UserRole.BILLING ? "text-teal-400" : "text-zinc-500"}`} />
-              <span>5. Billing Desk</span>
-            </button>
-
-            <button 
-              id="role-admin"
-              onClick={() => {
-                setCurrentRole(UserRole.ADMIN);
-                setIsSidebarOpen(false);
-              }}
-              className={`group flex items-center gap-3.5 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] rounded-lg transition-all border-l-2 text-left cursor-pointer ${
-                currentRole === UserRole.ADMIN 
-                  ? "bg-purple-600/10 text-purple-400 border-purple-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" 
-                  : "bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/60 hover:border-zinc-700/50"
-              }`}
-            >
-              <Terminal className={`w-4 h-4 transition-transform group-hover:scale-110 shrink-0 ${currentRole === UserRole.ADMIN ? "text-purple-400" : "text-zinc-500"}`} />
-              <span>6. Audit Admin</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-zinc-855 bg-[#0C0C0E] flex flex-col gap-2.5 text-[10px] font-mono text-zinc-500 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]"></span>
-            <span className="font-bold tracking-wider uppercase text-zinc-400">BIOMETRIC SECURE</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]"></span>
-            <span className="font-bold tracking-wider uppercase text-zinc-400">AES-256 ENCRYPTION</span>
-          </div>
-          <div className="mt-2 text-[9px] text-zinc-650 leading-tight uppercase font-black border-t border-zinc-850 pt-2">
-            HIPAA-2024.v4 CERTIFIED
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Layout Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        
-        {/* Mobile Header (Hidden on Desktop) */}
-        <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#111114] border-b border-zinc-800 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-zinc-800 transition-colors"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <div className="bg-red-600 text-white px-2 py-0.5 text-xs font-black tracking-tighter uppercase font-display rounded">
-              EMS CORE
-            </div>
-          </div>
-          
-          <span className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)] animate-pulse"></span>
-            <span>LIVE</span>
+      {/* Top Navigation / System Bar */}
+      <nav className="border-b border-zinc-200 flex flex-col md:flex-row items-center justify-between px-6 py-3.5 bg-white gap-4 sticky top-0 z-40 shadow-xs">
+        <div className="flex items-center gap-4">
+          <button 
+            id="toggle-nav-btn"
+            onClick={() => setIsNavVisible(!isNavVisible)}
+            className="p-2 hover:bg-zinc-100 border border-zinc-200 rounded-none flex items-center justify-center gap-2 transition-all text-zinc-850 font-mono text-[10px] font-black uppercase tracking-wider"
+            title="Toggle Navigation Sidebar"
+          >
+            <Menu className="w-4 h-4 text-zinc-900" />
+            <span>{isNavVisible ? "Hide Nav" : "Show Nav"}</span>
+          </button>
+          <div className="bg-red-600 text-white px-3 py-1 text-xs font-black tracking-tighter uppercase font-display">EMS CORE</div>
+          <div className="hidden md:block h-4 w-px bg-zinc-350"></div>
+          <span className="text-xs font-mono text-zinc-600 tracking-widest uppercase flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.6)] animate-pulse"></span>
+            <span>Unit Status: EMS-UBER LIVE DEPLOYMENT</span>
           </span>
-        </header>
-
-        {/* Scrollable Dashboard View */}
-        <div className="flex-1 overflow-y-auto">
-          <main className="max-w-7xl w-full mx-auto p-4 md:p-6">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-                <RefreshCw className="w-8 h-8 text-teal-400 animate-spin" />
-                <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">LINKING CLIENT TERMINALS...</span>
-              </div>
-            ) : (
-              <motion.div 
-                key={currentRole}
-                initial={{ opacity: 0, y: 3 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.22 }}
-              >
-                {currentRole === UserRole.CLIENT && (
-                  <ClientDashboard 
-                    ambulances={ambulances}
-                    activeTrip={activeClientTrip || null}
-                    onPanicTrigger={handlePanicTrigger}
-                    onCancelTrip={handleCancelTrip}
-                  />
-                )}
-
-                {currentRole === UserRole.DISPATCHER && (
-                  <DispatcherDashboard 
-                    ambulances={ambulances}
-                    trips={trips}
-                    onManualDispatch={handleManualDispatch}
-                    onForceCancel={handleCancelTrip}
-                  />
-                )}
-
-                {currentRole === UserRole.PARAMEDIC && (
-                  <ParamedicDashboard 
-                    ambulances={ambulances}
-                    trips={trips}
-                    onUpdateTripStatus={handleUpdateTripStatus}
-                    onUnlockPatient={handleUnlockPatient}
-                    onAddVitals={handleAddVitals}
-                    onUpdateClinical={handleUpdateClinical}
-                    onAddCode={handleAddCode}
-                    onSyncOfflineData={handleSyncOfflineData}
-                  />
-                )}
-
-                {currentRole === UserRole.HOSPITAL && (
-                  <HospitalDashboard 
-                    trips={trips}
-                    ambulances={ambulances}
-                    onUnlockPatient={handleUnlockPatient}
-                    onDoctorSignOff={handleDoctorSignOff}
-                  />
-                )}
-
-                {currentRole === UserRole.BILLING && (
-                  <BillingDashboard 
-                    trips={trips}
-                    onAddCode={handleAddCode}
-                    onRemoveCode={handleRemoveCode}
-                    onRecomputeClaim={handleRecomputeClaim}
-                  />
-                )}
-
-                {currentRole === UserRole.ADMIN && (
-                  <AdminDashboard 
-                    logs={auditLogs}
-                    onRefreshLogs={fetchAllData}
-                  />
-                )}
-              </motion.div>
-            )}
-          </main>
-
-          {/* Integrated Billing & Admin Footer */}
-          <footer className="bg-[#08080A] border-t border-zinc-850 py-5 px-6 flex flex-col sm:flex-row items-center justify-between text-[10px] font-mono text-zinc-500 gap-4">
-            <div className="flex flex-wrap items-center gap-6 justify-center sm:justify-start">
-              <div className="flex gap-2 items-center">
-                <span className="font-black text-zinc-600 uppercase">Encryption:</span>
-                <span className="text-green-500 font-bold">E2E ACTIVE (AES-256)</span>
-              </div>
-              <div className="flex gap-2 items-center">
-                <span className="font-black text-zinc-600 uppercase">Claims:</span>
-                <span className="text-zinc-300 font-bold">AUTO-GEN READY</span>
-              </div>
-            </div>
-            <div className="text-[9px] text-zinc-650 uppercase font-black tracking-tighter text-center sm:text-right">
-              &copy; 2026 EMS-Uber Command. HIPAA-2024.v4 Certified Audit Registry.
-            </div>
-          </footer>
         </div>
+        
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.6)]"></div>
+            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest font-mono">BIOMETRIC SECURE</span>
+          </div>
+          <div className="h-4 w-px bg-zinc-200 hidden md:block"></div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest font-mono">ENCRYPTION: AES-256</span>
+          </div>
+        </div>
+      </nav>
 
+      {/* Left Navigation and Main Area Layout */}
+      <div className="flex-1 flex flex-col md:flex-row w-full max-w-[1600px] mx-auto">
+        
+        {/* Left Side Navigation Sidebar */}
+        {isNavVisible && (
+          <aside className="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r border-zinc-200 p-4 md:p-6 shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-left-4 duration-200">
+            <div>
+              <span className="text-[10px] font-mono font-black text-zinc-500 uppercase tracking-wider block mb-2">EMS CORE ROLES</span>
+              <div className="flex flex-col gap-2">
+                
+                <button 
+                  id="role-client"
+                  onClick={() => setCurrentRole(UserRole.CLIENT)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.CLIENT 
+                      ? "bg-red-50 text-red-700 border-red-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <User className="w-4 h-4 shrink-0" />
+                  <span>1. Patient Caller</span>
+                </button>
+
+                <button 
+                  id="role-dispatcher"
+                  onClick={() => setCurrentRole(UserRole.DISPATCHER)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.DISPATCHER 
+                      ? "bg-blue-50 text-blue-700 border-blue-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <Activity className="w-4 h-4 shrink-0" />
+                  <span>2. Dispatcher</span>
+                </button>
+
+                <button 
+                  id="role-paramedic"
+                  onClick={() => setCurrentRole(UserRole.PARAMEDIC)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.PARAMEDIC 
+                      ? "bg-amber-50 text-amber-700 border-amber-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <HeartPulse className="w-4 h-4 shrink-0" />
+                  <span>3. Paramedic</span>
+                </button>
+
+                <button 
+                  id="role-hospital"
+                  onClick={() => setCurrentRole(UserRole.HOSPITAL)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.HOSPITAL 
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <Hospital className="w-4 h-4 shrink-0" />
+                  <span>4. ER Portal</span>
+                </button>
+
+                <button 
+                  id="role-billing"
+                  onClick={() => setCurrentRole(UserRole.BILLING)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.BILLING 
+                      ? "bg-teal-50 text-teal-700 border-teal-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                  <span>5. Billing Desk</span>
+                </button>
+
+                <button 
+                  id="role-admin"
+                  onClick={() => setCurrentRole(UserRole.ADMIN)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.ADMIN 
+                      ? "bg-purple-50 text-purple-700 border-purple-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <Terminal className="w-4 h-4 shrink-0" />
+                  <span>6. Audit Admin</span>
+                </button>
+
+                <button 
+                  id="role-provider"
+                  onClick={() => setCurrentRole(UserRole.PROVIDER)}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-xs font-black uppercase tracking-[0.15em] transition-all w-full text-left border-l-2 ${
+                    currentRole === UserRole.PROVIDER 
+                      ? "bg-rose-50 text-rose-700 border-rose-600" 
+                      : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  <Siren className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>7. Operator Registry</span>
+                </button>
+
+              </div>
+            </div>
+
+            <div className="mt-auto hidden md:block pt-6 border-t border-zinc-200">
+              <div className="bg-zinc-50 p-4 border border-zinc-200 space-y-2">
+                <span className="text-[9px] font-mono font-black text-zinc-500 uppercase tracking-widest block">SYSTEM METRICS</span>
+                <div className="flex justify-between items-center text-[10px] text-zinc-600">
+                  <span>ACTIVE CALLS:</span>
+                  <span className="font-mono font-bold text-red-600">
+                    {trips.filter(t => t.status !== TripStatus.COMPLETED).length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-zinc-600">
+                  <span>TOTAL AMBULANCES:</span>
+                  <span className="font-mono font-bold text-zinc-850">
+                    {ambulances.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Main Display Area */}
+        <main className="flex-1 p-4 md:p-6 min-w-0">
+          
+          {loading ? (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+              <RefreshCw className="w-8 h-8 text-teal-600 animate-spin" />
+              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">LINKING CLIENT TERMINALS...</span>
+            </div>
+          ) : (
+            <motion.div 
+              key={currentRole}
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22 }}
+            >
+              {currentRole === UserRole.CLIENT && (
+                <ClientDashboard 
+                  ambulances={ambulances}
+                  trips={trips}
+                  activeTrip={activeClientTrip || null}
+                  onPanicTrigger={handlePanicTrigger}
+                  onCancelTrip={handleCancelTrip}
+                  onScheduleTrip={handleScheduleTrip}
+                />
+              )}
+
+              {currentRole === UserRole.DISPATCHER && (
+                <DispatcherDashboard 
+                  ambulances={ambulances}
+                  trips={trips}
+                  onManualDispatch={handleManualDispatch}
+                  onForceCancel={handleCancelTrip}
+                />
+              )}
+
+              {currentRole === UserRole.PARAMEDIC && (
+                <ParamedicDashboard 
+                  ambulances={ambulances}
+                  trips={trips}
+                  onUpdateTripStatus={handleUpdateTripStatus}
+                  onUnlockPatient={handleUnlockPatient}
+                  onAddVitals={handleAddVitals}
+                  onUpdateClinical={handleUpdateClinical}
+                  onAddCode={handleAddCode}
+                  onSyncOfflineData={handleSyncOfflineData}
+                />
+              )}
+
+              {currentRole === UserRole.HOSPITAL && (
+                <HospitalDashboard 
+                  trips={trips}
+                  ambulances={ambulances}
+                  onUnlockPatient={handleUnlockPatient}
+                  onDoctorSignOff={handleDoctorSignOff}
+                />
+              )}
+
+              {currentRole === UserRole.BILLING && (
+                <BillingDashboard 
+                  trips={trips}
+                  onAddCode={handleAddCode}
+                  onRemoveCode={handleRemoveCode}
+                  onRecomputeClaim={handleRecomputeClaim}
+                />
+              )}
+
+              {currentRole === UserRole.ADMIN && (
+                <AdminDashboard 
+                  logs={auditLogs}
+                  onRefreshLogs={fetchAllData}
+                />
+              )}
+
+              {currentRole === UserRole.PROVIDER && (
+                <AmbulanceRegistrationDashboard 
+                  ambulances={ambulances}
+                  onRegisterAmbulance={handleRegisterAmbulance}
+                  onUploadComplianceDoc={handleUploadComplianceDoc}
+                />
+              )}
+            </motion.div>
+          )}
+
+        </main>
       </div>
+
+      {/* Bottom Integrated Billing & Admin Bar */}
+      <footer className="bg-zinc-100 border-t border-zinc-200 py-4.5 px-6 flex flex-col md:flex-row items-center justify-between text-[10px] font-mono text-zinc-500 mt-auto gap-4">
+        <div className="flex flex-wrap items-center gap-6 justify-center">
+          <div className="flex gap-2 items-center">
+            <span className="font-black text-zinc-400 uppercase">Encryption:</span>
+            <span className="text-green-600 font-bold">E2E ACTIVE (AES-256)</span>
+          </div>
+          <div className="flex gap-2 items-center">
+            <span className="font-black text-zinc-400 uppercase">Claims:</span>
+            <span className="text-zinc-800 font-bold">AUTO-GEN READY</span>
+          </div>
+        </div>
+        <div className="text-[9px] text-zinc-500 uppercase font-black tracking-tighter text-center md:text-right">
+          &copy; 2026 EMS-Uber Command. HIPAA-2024.v4 Certified Audit Registry.
+        </div>
+      </footer>
 
     </div>
   );

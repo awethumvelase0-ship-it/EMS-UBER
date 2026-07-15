@@ -30,7 +30,8 @@ export enum TripStatus {
   AT_SCENE = "AT_SCENE",
   TRANSPORTING = "TRANSPORTING",
   ARRIVED = "ARRIVED",
-  COMPLETED = "COMPLETED"
+  COMPLETED = "COMPLETED",
+  SCHEDULED = "SCHEDULED"
 }
 
 export enum UserRole {
@@ -39,7 +40,19 @@ export enum UserRole {
   DISPATCHER = "DISPATCHER",
   HOSPITAL = "HOSPITAL",
   BILLING = "BILLING",
-  ADMIN = "ADMIN"
+  ADMIN = "ADMIN",
+  PROVIDER = "PROVIDER"
+}
+
+export interface ComplianceDoc {
+  id: string;
+  name: string;
+  type: string;
+  expiryDate: string;
+  fileName: string;
+  fileSize: string;
+  uploadedAt: string;
+  status: "VERIFIED" | "PENDING" | "EXPIRED";
 }
 
 export interface Ambulance {
@@ -50,6 +63,7 @@ export interface Ambulance {
   location: { lat: number; lng: number };
   crew: string[];
   vitalsMonitoringSupported: boolean;
+  complianceDocs?: ComplianceDoc[];
 }
 
 export interface PatientInfo {
@@ -113,6 +127,10 @@ export interface DispatchTrip {
   doctorSignOff: DoctorSignOff;
   timeline: { status: TripStatus; timestamp: string; note: string }[];
   offlineSynced: boolean;
+  kilometersCovered?: number;
+  equipmentsUsed?: string[];
+  isScheduled?: boolean;
+  scheduledAt?: string;
 }
 
 export interface HIPAAAuditLog {
